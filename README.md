@@ -2,6 +2,8 @@
 
 You are taking part to the [International High-Performance Computing Summer School](https://ss22.ihpcss.org) programming challenge? That's where it starts!
 
+<img src="https://github.com/capellil/IHPCSS_Programming_challenge_2022/blob/main/images/in_a_nutshell.png">
+
 ## Table of contents ##
 
 * [What is the challenge?](#what-is-the-challenge)
