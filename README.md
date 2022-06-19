@@ -5,8 +5,8 @@ You are taking part to the [International High-Performance Computing Summer Scho
 ## Table of contents ##
 
 * [What is the challenge?](#what-is-the-challenge)
-* [What is this repository for?](#what-is-this-repository-for)
 * [Is the programming challenge for me?](#is-the-programming-challenge-for-me)
+* [What is this repository for?](#what-is-this-repository-for)
 * [How do I get set up?](#how-do-i-get-set-up)
   * [Download](#download)
   * [Compilation](#compilation)
