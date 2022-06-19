@@ -21,9 +21,7 @@ You are taking part to the [International High-Performance Computing Summer Scho
 
 This challenge introduces a simple problem: take a metal plate, put a flame below it and simulate the temperature propagation across that metal plate. For simplicity, we assume that the area touched by the flame will always be at the same temperature (arbitrarily put at 50 degrees; yes it is a tiny flame). The rest of the metal plate however will start heating up as the heat propagates outwards the lighter zone.
 
-We represent the metal plate as a grid, and every iteration we calculate the temperature variation in each grid cell, until the maximum variation observed falls under a given threshold. When it does, we consider convergence has been reached and stop the simulation.
-
-The challenge is that you have 30 seconds to process as many iterations as possible. You therefore have to optimise the code with the techniques you will learn in the IHPSCS because the faster your iterations, the more you can execute under 30 seconds.
+We represent the metal plate as a grid, and every iteration we calculate the temperature variation in each grid cell. The challenge is that you have 30 seconds to process as many iterations as possible. You therefore have to optimise the code with the techniques you will learn in the IHPSCS because the faster your iterations, the more you can execute under 30 seconds.
 
 [Go back to table of contents](#table-of-contents)
 ## Is the programming challenge for me? ##
