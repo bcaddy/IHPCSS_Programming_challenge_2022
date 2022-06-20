@@ -41,7 +41,6 @@ Short answer? Yes. From experience there are two audiences, equally welcome.
 - C, FORTRAN-90, MPI, OpenMP, OpenACC etc... That's a lot of technologies and standards right there, are you sure your team is the best in your category?
 - if you want extra challenge, you can always participate to both tracks: trying to develop the fastest CPU code, and the fastest GPU code.
 - should there be a tie between two or more teams, the submission time will be the tiebreaker: the team in tie having submitted first will win. So, developing the fastest code is no garantee of winning, being the quickest at developing the fastest code is.
-- there are trophies to bring home, should you be the team having developed the fastest code of course ;)
 
 In 2021, the programming challenge got an overall feedback score of 88%. It therefore seems that both audiences had great fun doing it, why not giving it a try? ;)
 
