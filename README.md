@@ -86,7 +86,11 @@ And of course, you modify the file corresponding to the combination you want to 
 ### Submit ###
 (***Note**: Jobs submitted with this script will use the corresponding reservation queue for big jobs.*)
 
-A script has been written for you to easily submit your work to Bridges2 via SLURM: ```./submit.sh LANGUAGE IMPLEMENTATION SIZE OUTPUT_FILE```. The parameters are always the same:
+A script has been written for you to easily submit your work to Bridges2 via SLURM:
+
+```./submit.sh LANGUAGE IMPLEMENTATION SIZE OUTPUT_FILE```
+
+The parameters are always the same:
 * LANGUAGE = ```c``` | ```f```
 * IMPLEMENTATION = ```cpu``` | ```gpu```
 * SIZE = ```small``` | ```big```
@@ -99,7 +103,11 @@ Examples:
 
 [Go back to table of contents](#table-of-contents)
 ### Verify ###
-The correctness of your code will be evaluated using the temperature change observed throughout iterations. Once you have a file containing the output of your program, you can check the correctness by using the ```verify.sh``` as follows: ```./verify.sh LANGUAGE IMPLEMENTATION SIZE FILE_TO_VERIFY```. The parameters are always the same:
+The correctness of your code will be evaluated using the temperature change observed throughout iterations. Once you have a file containing the output of your program, you can check the correctness by using the ```verify.sh``` as follows:
+
+```./verify.sh LANGUAGE IMPLEMENTATION SIZE FILE_TO_VERIFY```
+
+The parameters are always the same:
 * LANGUAGE = ```c``` | ```f```
 * IMPLEMENTATION = ```cpu``` | ```gpu```
 * SIZE = ```small``` | ```big```
