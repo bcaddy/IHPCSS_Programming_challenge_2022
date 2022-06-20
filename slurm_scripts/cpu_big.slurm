@@ -7,7 +7,7 @@
 #SBATCH --job-name=IHPCSS
 #SBATCH --output=error.txt
 #SBATCH --error=error.txt
-#SBATCH --reservation=hybridIHPCSS
+#SBATCH --reservation=challengerm
 
 # OpenMP placement
 export OMP_NUM_THREADS=64

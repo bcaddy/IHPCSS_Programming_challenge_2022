@@ -8,7 +8,7 @@
 #SBATCH --output=error.txt
 #SBATCH --error=error.txt
 #SBATCH --gres=gpu:v100:8
-#SBATCH --reservation=gpuhybridIHPCSS
+#SBATCH --reservation=challengegpu
 
 # OpenMP placement
 export OMP_NUM_THREADS=1
