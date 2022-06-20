@@ -23,24 +23,26 @@ You are taking part to the [International High-Performance Computing Summer Scho
 
 This challenge introduces a simple problem: take a metal plate, put a flame below it and simulate the temperature propagation across that metal plate. For simplicity, we assume that the area touched by the flame will always be at the same temperature (arbitrarily put at 50 degrees; yes it is a tiny flame). The rest of the metal plate however will start heating up as the heat propagates outwards the lighter zone.
 
-We represent the metal plate as a grid, and every iteration we calculate the temperature variation in each grid cell. The challenge is that you have 30 seconds to process as many iterations as possible. You therefore have to optimise the code with the techniques you will learn in the IHPSCS because the faster your iterations, the more you can execute under 30 seconds.
+We represent the metal plate as a 2D grid, and every iteration we calculate the temperature variation in each grid cell by averaging the temperatures from the previous iteration in the neighbouring cells. The challenge is that you have 30 seconds to process as many iterations as possible. You therefore have to optimise the code with the techniques you will learn in the IHPCSS because the faster your iterations, the more you can execute under 30 seconds.
 
 [Go back to table of contents](#table-of-contents)
 ## Is the programming challenge for me? ##
-Short answer? Yes. From experience there are two audiences, equally welcome.
+Short answer? Yes. From experience there are two audiences, equally welcome:
 1) **Participants who want to do it exclusively for fun, looking primarily for no pressure or judgement**. If you consider yourself in this category, know that:
 - there is no registration needed to participate
 - there is no list of who participates or not
 - there is no obligation to even participate at all
 - you work on it when you want, if at some point you no longer have time or no longer want to, you simply stop
+- there is no deadline by which teams must be officially declared (until you actually submit, if you submit)
 - sending your code at the end is optional
-- if you do send it, because you still want to see if you happened to have the fastest code, there is no ranking or name disclosed beyond the winning team. In other words, either your name is disclosed and it means you won, or nobody will know you even submitted
+- if you do send it, because you still want to see if you happen to have the fastest code, there is no ranking or name disclosed beyond the winning team. In other words, either your name is disclosed and it means your team won, or nobody will know you even submitted
 - you are allowed to send your code multiple times, for instance if found additional optimisations or bug fixes after submitting already. However, only the last submission received is considered.
 2) **Participants who are in a bit more of a competition mindset**. If you consider yourself in this category, know that in addition to the above:
 - indeed the code has certain areas easy to optimise, but there are also inefficiencies in it that are sneakier to spot. Maybe you will be able to find the one nobody else found? ... or missed the one other teams found?
 - C, FORTRAN-90, MPI, OpenMP, OpenACC etc... That's a lot of technologies and standards right there, are you sure your team is the best in your category?
 - if you want extra challenge, you can always participate to both tracks: trying to develop the fastest CPU code, and the fastest GPU code.
 - should there be a tie between two or more teams, the submission time will be the tiebreaker: the team in tie having submitted first will win. So, developing the fastest code is no garantee of winning, being the quickest at developing the fastest code is.
+- and of course there are trophies to bring home, if your team is the fastest ;)
 
 In 2021, the programming challenge got an overall feedback score of 88%. It therefore seems that both audiences had great fun doing it, why not giving it a try? ;)
 
