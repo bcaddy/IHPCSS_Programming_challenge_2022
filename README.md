@@ -35,10 +35,12 @@ Short answer? Yes. From experience there are two audiences, equally welcome.
 - you work on it when you want, if at some point you no longer have time or no longer want to, you simply stop
 - sending your code at the end is optional
 - if you do send it, because you still want to see if you happened to have the fastest code, there is no ranking or name disclosed beyond the winning team. In other words, either your name is disclosed and it means you won, or nobody will know you even submitted
+- you are allowed to send your code multiple times, for instance if found additional optimisations or bug fixes after submitting already. However, only the last submission received is considered.
 2) **Participants who are in a bit more of a competition mindset**. If you consider yourself in this category, know that in addition to the above:
 - indeed the code has certain areas easy to optimise, but there are also inefficiencies in it that are sneakier to spot. Maybe you will be able to find the one nobody else found? ... or missed the one other teams found?
 - C, FORTRAN-90, MPI, OpenMP, OpenACC etc... That's a lot of technologies and standards right there, are you sure your team is the best in your category?
 - if you want extra challenge, you can always participate to both tracks: trying to develop the fastest CPU code, and the fastest GPU code.
+- should there be a tie between two or more teams, the submission time will be the tiebreaker: the team in tie having submitted first will win. So, developing the fastest code is no garantee of winning, being the quickest at developing the fastest code is.
 - there are trophies to bring home, should you be the team having developed the fastest code of course ;)
 
 In 2021, the programming challenge got an overall feedback score of 88%. It therefore seems that both audiences had great fun doing it, why not giving it a try? ;)
