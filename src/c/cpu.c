@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 
 	// Rank of my up neighbour if any
 	int up_neighbour_rank = (my_rank == FIRST_PROCESS_RANK) ? MPI_PROC_NULL : my_rank - 1;
-	
+
 	// Rank of my down neighbour if any
 	int down_neighbour_rank = (my_rank == LAST_PROCESS_RANK) ? MPI_PROC_NULL : my_rank + 1;
 
@@ -80,13 +80,14 @@ int main(int argc, char* argv[])
 	//  /  o  \                              //
 	// /_______\                             //
 	///////////////////////////////////////////
-	
+
 	////////////////////////////////////////////////////////
 	// -- TASK 1: DISTRIBUTE DATA TO ALL MPI PROCESSES -- //
 	////////////////////////////////////////////////////////
 	double total_time_so_far = 0.0;
 	double start_time = MPI_Wtime();
 
+	// Replace with scatter or broadcast
 	if(my_rank == MASTER_PROCESS_RANK)
 	{
 		for(int i = 0; i < comm_size; i++)
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
 
 	// Wait for everybody to receive their part before we can start processing
 	MPI_Barrier(MPI_COMM_WORLD);
-	
+
 	/////////////////////////////
 	// TASK 2: DATA PROCESSING //
 	/////////////////////////////
@@ -140,9 +141,15 @@ int main(int argc, char* argv[])
 	/// Maximum temperature change observed across all MPI processes
 	double global_temperature_change;
 	/// Maximum temperature change for us
-	double my_temperature_change; 
+	double my_temperature_change;
 	/// The last snapshot made
 	double snapshot[ROWS][COLUMNS];
+
+	MPI_Request requestUp;
+	MPI_Request requestDown;
+
+	MPI_Send_init(&temperatures[1][0],                    COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   0, MPI_COMM_WORLD, &requestUp);
+	MPI_Send_init(&temperatures[ROWS_PER_MPI_PROCESS][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, 0, MPI_COMM_WORLD, &requestDown);
 
 	while(total_time_so_far < MAX_TIME)
 	{
@@ -153,16 +160,20 @@ int main(int argc, char* argv[])
 		// ////////////////////////////////////////
 
 		// Send data to up neighbour for its ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
-		MPI_Ssend(&temperatures[1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank, 0, MPI_COMM_WORLD);
+		MPI_Start(&requestUp);
+
+		// Send data to down neighbour for its ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
+		MPI_Start(&requestDown);
 
 		// Receive data from down neighbour to fill our ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
 		MPI_Recv(&temperatures_last[ROWS_PER_MPI_PROCESS+1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-		// Send data to down neighbour for its ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
-		MPI_Ssend(&temperatures[ROWS_PER_MPI_PROCESS][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, 0, MPI_COMM_WORLD);
-
 		// Receive data from up neighbour to fill our ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Recv(&temperatures_last[0][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&temperatures_last[0][0],                      COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		// Waits for the MPI sends
+		MPI_Wait(&requestUp,   MPI_STATUS_IGNORE);
+		MPI_Wait(&requestDown, MPI_STATUS_IGNORE);
 
 		/////////////////////////////////////////////
 		// -- SUBTASK 2: PROPAGATE TEMPERATURES -- //
@@ -207,7 +218,7 @@ int main(int argc, char* argv[])
 				my_temperature_change = fmax(fabs(temperatures[i][j] - temperatures_last[i][j]), my_temperature_change);
 			}
 		}
-	
+
 		//////////////////////////////////////////////////////////
 		// -- SUBTASK 4: FIND MAX TEMPERATURE CHANGE OVERALL -- //
 		//////////////////////////////////////////////////////////
@@ -215,7 +226,7 @@ int main(int argc, char* argv[])
 		{
 			// Send my temperature delta to the master MPI process
 			MPI_Ssend(&my_temperature_change, 1, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD);
-			
+
 			// Receive the total delta calculated by the MPI process based on all MPI processes delta
 			MPI_Recv(&global_temperature_change, 1, MPI_DOUBLE, MASTER_PROCESS_RANK, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		}
@@ -290,7 +301,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				// Send my array to the master MPI process
-				MPI_Ssend(&temperatures[1][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD); 
+				MPI_Ssend(&temperatures[1][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD);
 			}
 		}
 
