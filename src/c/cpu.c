@@ -149,11 +149,16 @@ int main(int argc, char* argv[])
 
 	MPI_Request requestUp;
 	MPI_Request requestDown;
+	MPI_Request requestRecvUp;
+	MPI_Request requestRecvDown;
 	MPI_Request requestGatherSnapshot;
 
 	MPI_Send_init(&temperatures[1][0],                          COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   0, MPI_COMM_WORLD, &requestUp);
 	MPI_Send_init(&temperatures[ROWS_PER_MPI_PROCESS][0],       COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, 0, MPI_COMM_WORLD, &requestDown);
 	MPI_Send_init(&temperatures[1][0],   ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD, &requestGatherSnapshot);
+
+	MPI_Recv_init(&temperatures_last[ROWS_PER_MPI_PROCESS+1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvDown);
+	MPI_Recv_init(&temperatures_last[0][0],                      COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvUp);
 
 	while(total_time_so_far < MAX_TIME)
 	{
@@ -215,14 +220,18 @@ int main(int argc, char* argv[])
 		// Get the halo data and compute the edge values
 
 		// Receive data from down neighbour to fill our ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Recv(&temperatures_last[ROWS_PER_MPI_PROCESS+1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Start(&requestRecvDown);
 
 		// Receive data from up neighbour to fill our ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Recv(&temperatures_last[0][0],                      COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Start(&requestRecvUp);
 
 		// Waits for the MPI sends
 		MPI_Wait(&requestUp,   MPI_STATUS_IGNORE);
 		MPI_Wait(&requestDown, MPI_STATUS_IGNORE);
+
+		// Waits for the MPI receives
+		MPI_Wait(&requestRecvUp,   MPI_STATUS_IGNORE);
+		MPI_Wait(&requestRecvDown, MPI_STATUS_IGNORE);
 
 		second_my_temperature_change = 0.0;
 		#pragma omp parallel default(none) shared(temperatures, temperatures_last) reduction(max:second_my_temperature_change)
