@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				// Yes, let's copy it straight for the array in which we read the file into.
-				// #pragma omp parallel for default(none) shared(all_temperatures, temperatures_last)
+				// #pragma omp parallel for default(none) shared(all_temperatures, temperatures_last) num_threads(8)
 				for(int j = 1; j <= ROWS_PER_MPI_PROCESS; j++)
 				{
 					for(int k = 0; k < COLUMNS_PER_MPI_PROCESS; k++)
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Copy the temperatures into the current iteration temperature as well
-	// #pragma omp parallel for default(none) shared(temperatures, temperatures_last)
+	#pragma omp parallel for default(none) shared(temperatures, temperatures_last)
 	for(int i = 1; i <= ROWS_PER_MPI_PROCESS; i++)
 	{
 		for(int j = 0; j < COLUMNS_PER_MPI_PROCESS; j++)
@@ -308,7 +308,7 @@ int main(int argc, char* argv[])
 					if(j == my_rank)
 					{
 						// Copy locally my own temperature array in the global one
-						// #pragma omp parallel for default(none) shared(temperatures, snapshot) firstprivate(j)
+						#pragma omp parallel for default(none) shared(temperatures, snapshot) firstprivate(j)
 						for(int k = 0; k < ROWS_PER_MPI_PROCESS; k++)
 						{
 							for(int l = 0; l < COLUMNS_PER_MPI_PROCESS; l++)
