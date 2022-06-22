@@ -147,9 +147,11 @@ int main(int argc, char* argv[])
 
 	MPI_Request requestUp;
 	MPI_Request requestDown;
+	MPI_Request requestGatherSnapshot;
 
-	MPI_Send_init(&temperatures[1][0],                    COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   0, MPI_COMM_WORLD, &requestUp);
-	MPI_Send_init(&temperatures[ROWS_PER_MPI_PROCESS][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, 0, MPI_COMM_WORLD, &requestDown);
+	MPI_Send_init(&temperatures[1][0],                          COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   0, MPI_COMM_WORLD, &requestUp);
+	MPI_Send_init(&temperatures[ROWS_PER_MPI_PROCESS][0],       COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, 0, MPI_COMM_WORLD, &requestDown);
+	MPI_Send_init(&temperatures[1][0],   ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD, &requestGatherSnapshot);
 
 	while(total_time_so_far < MAX_TIME)
 	{
@@ -169,6 +171,9 @@ int main(int argc, char* argv[])
 		// -- SUBTASK 2: PROPAGATE TEMPERATURES -- //
 		/////////////////////////////////////////////
 		my_temperature_change = 0.0; // calculate temperature change
+
+		// Wait for snapshot gather
+		if ((iteration_count > 0) && ((iteration_count-1) % SNAPSHOT_INTERVAL == 0)) MPI_Wait(&requestGatherSnapshot, MPI_STATUS_IGNORE);
 
 		for(int i = 2; i <= ROWS_PER_MPI_PROCESS-1; i++)
 		{
@@ -304,7 +309,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				// Send my array to the master MPI process
-				MPI_Ssend(&temperatures[1][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD);
+				MPI_Start(&requestGatherSnapshot);
 			}
 		}
 
