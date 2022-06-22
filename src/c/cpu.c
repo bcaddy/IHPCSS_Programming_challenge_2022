@@ -165,22 +165,12 @@ int main(int argc, char* argv[])
 		// Send data to down neighbour for its ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
 		MPI_Start(&requestDown);
 
-		// Receive data from down neighbour to fill our ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Recv(&temperatures_last[ROWS_PER_MPI_PROCESS+1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-		// Receive data from up neighbour to fill our ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Recv(&temperatures_last[0][0],                      COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-		// Waits for the MPI sends
-		MPI_Wait(&requestUp,   MPI_STATUS_IGNORE);
-		MPI_Wait(&requestDown, MPI_STATUS_IGNORE);
-
 		/////////////////////////////////////////////
 		// -- SUBTASK 2: PROPAGATE TEMPERATURES -- //
 		/////////////////////////////////////////////
 		my_temperature_change = 0.0; // calculate temperature change
 
-		for(int i = 1; i <= ROWS_PER_MPI_PROCESS; i++)
+		for(int i = 2; i <= ROWS_PER_MPI_PROCESS-1; i++)
 		{
 			// Process the cell at the first column, which has no left neighbour
 			if(temperatures[i][0] != MAX_TEMPERATURE)
@@ -191,7 +181,7 @@ int main(int argc, char* argv[])
 				my_temperature_change = fmax(fabs(temperatures[i][0] - temperatures_last[i][0]), my_temperature_change);
 			}
 			// Process all cells between the first and last columns excluded, which each has both left and right neighbours
-			for(int j = 1; j < COLUMNS_PER_MPI_PROCESS - 1; j++)
+			for(int j = 2; j < COLUMNS_PER_MPI_PROCESS - 2; j++)
 			{
 				if(temperatures[i][j] != MAX_TEMPERATURE)
 				{
@@ -213,6 +203,54 @@ int main(int argc, char* argv[])
 												 my_temperature_change);
 			}
 		}
+
+		// Get the halo data and compute the edge values
+
+		// Receive data from down neighbour to fill our ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
+		MPI_Recv(&temperatures_last[ROWS_PER_MPI_PROCESS+1][0], COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, down_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		// Receive data from up neighbour to fill our ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
+		MPI_Recv(&temperatures_last[0][0],                      COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, up_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		// Waits for the MPI sends
+		MPI_Wait(&requestUp,   MPI_STATUS_IGNORE);
+		MPI_Wait(&requestDown, MPI_STATUS_IGNORE);
+
+		for(int i = 1; i <= ROWS_PER_MPI_PROCESS; i += ROWS_PER_MPI_PROCESS-1)
+		{
+			// Process the cell at the first column, which has no left neighbour
+			if(temperatures[i][0] != MAX_TEMPERATURE)
+			{
+				temperatures[i][0] = (temperatures_last[i-1][0] +
+									  temperatures_last[i+1][0] +
+									  temperatures_last[i  ][1]) / 3.0;
+				my_temperature_change = fmax(fabs(temperatures[i][0] - temperatures_last[i][0]), my_temperature_change);
+			}
+			// Process all cells between the first and last columns excluded, which each has both left and right neighbours
+			for(int j = 1; j < COLUMNS_PER_MPI_PROCESS - 1; j += COLUMNS_PER_MPI_PROCESS - 3)
+			{
+				if(temperatures[i][j] != MAX_TEMPERATURE)
+				{
+					temperatures[i][j] = 0.25 * (temperatures_last[i-1][j  ] +
+												 temperatures_last[i+1][j  ] +
+												 temperatures_last[i  ][j-1] +
+												 temperatures_last[i  ][j+1]);
+					my_temperature_change = fmax(fabs(temperatures[i][j] - temperatures_last[i][j]), my_temperature_change);
+				}
+			}
+			// Process the cell at the last column, which has no right neighbour
+			if(temperatures[i][COLUMNS_PER_MPI_PROCESS - 1] != MAX_TEMPERATURE)
+			{
+				temperatures[i][COLUMNS_PER_MPI_PROCESS - 1] = (temperatures_last[i-1][COLUMNS_PER_MPI_PROCESS - 1] +
+															    temperatures_last[i+1][COLUMNS_PER_MPI_PROCESS - 1] +
+															    temperatures_last[i  ][COLUMNS_PER_MPI_PROCESS - 2]) / 3.0;
+				my_temperature_change = fmax(fabs(temperatures[i][COLUMNS_PER_MPI_PROCESS - 1]
+				                                - temperatures_last[i][COLUMNS_PER_MPI_PROCESS - 1]),
+												 my_temperature_change);
+			}
+		}
+
+
 
 		///////////////////////////////////////////////////////
 		// -- SUBTASK 3: CALCULATE MAX TEMPERATURE CHANGE -- //
