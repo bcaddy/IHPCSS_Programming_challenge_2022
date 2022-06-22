@@ -178,6 +178,8 @@ int main(int argc, char* argv[])
 		/////////////////////////////////////////////
 		// -- SUBTASK 2: PROPAGATE TEMPERATURES -- //
 		/////////////////////////////////////////////
+		my_temperature_change = 0.0; // calculate temperature change
+
 		for(int i = 1; i <= ROWS_PER_MPI_PROCESS; i++)
 		{
 			// Process the cell at the first column, which has no left neighbour
@@ -186,6 +188,7 @@ int main(int argc, char* argv[])
 				temperatures[i][0] = (temperatures_last[i-1][0] +
 									  temperatures_last[i+1][0] +
 									  temperatures_last[i  ][1]) / 3.0;
+				my_temperature_change = fmax(fabs(temperatures[i][0] - temperatures_last[i][0]), my_temperature_change);
 			}
 			// Process all cells between the first and last columns excluded, which each has both left and right neighbours
 			for(int j = 1; j < COLUMNS_PER_MPI_PROCESS - 1; j++)
@@ -196,6 +199,7 @@ int main(int argc, char* argv[])
 												 temperatures_last[i+1][j  ] +
 												 temperatures_last[i  ][j-1] +
 												 temperatures_last[i  ][j+1]);
+					my_temperature_change = fmax(fabs(temperatures[i][j] - temperatures_last[i][j]), my_temperature_change);
 				}
 			}
 			// Process the cell at the last column, which has no right neighbour
@@ -204,20 +208,16 @@ int main(int argc, char* argv[])
 				temperatures[i][COLUMNS_PER_MPI_PROCESS - 1] = (temperatures_last[i-1][COLUMNS_PER_MPI_PROCESS - 1] +
 															    temperatures_last[i+1][COLUMNS_PER_MPI_PROCESS - 1] +
 															    temperatures_last[i  ][COLUMNS_PER_MPI_PROCESS - 2]) / 3.0;
+				my_temperature_change = fmax(fabs(temperatures[i][COLUMNS_PER_MPI_PROCESS - 1]
+				                                - temperatures_last[i][COLUMNS_PER_MPI_PROCESS - 1]),
+												 my_temperature_change);
 			}
 		}
 
 		///////////////////////////////////////////////////////
 		// -- SUBTASK 3: CALCULATE MAX TEMPERATURE CHANGE -- //
 		///////////////////////////////////////////////////////
-		my_temperature_change = 0.0;
-		for(int i = 1; i <= ROWS_PER_MPI_PROCESS; i++)
-		{
-			for(int j = 0; j < COLUMNS_PER_MPI_PROCESS; j++)
-			{
-				my_temperature_change = fmax(fabs(temperatures[i][j] - temperatures_last[i][j]), my_temperature_change);
-			}
-		}
+		// Moved to above in loop
 
 		//////////////////////////////////////////////////////////
 		// -- SUBTASK 4: FIND MAX TEMPERATURE CHANGE OVERALL -- //
