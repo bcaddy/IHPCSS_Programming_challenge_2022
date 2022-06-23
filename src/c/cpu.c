@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
 	int start_coordinates[2]={0,0};
 	int original_dims[2] ={ROWS, COLUMNS};
-	int new_dims[2] = {ROWS_PER_MPI_PROCESS, COLUMNS_PER_MPI_PROCESS};
+	int new_dims[2] = {nx, ny};
 	MPI_Datatype subarray_type;
 	MPI_Type_create_subarray(2, original_dims, new_dims, start_coordinates, MPI_ORDER_C, MPI_DOUBLE, &subarray_type);
 	MPI_Type_commit(&subarray_type);
@@ -72,12 +72,15 @@ int main(int argc, char* argv[])
 	// Rank of my down neighbour if any
 	//int down_neighbour_rank = (my_rank == LAST_PROCESS_RANK) ? MPI_PROC_NULL : my_rank + 1;
 	int up_neighbour_rank, down_neighbour_rank;
-  	MPI_Cart_shift(grid_communicator, 1, 1, &down_neighbour_rank, &up_neighbour_rank);
+  	MPI_Cart_shift(&grid_communicator, 1, 1, &down_neighbour_rank, &up_neighbour_rank);
 
 	int const rowsPerRank = ROWS/2;
 	int const colsPerRank = COLUMNS/2;
 	// Rank of my up neighbour if any
-	int snapShotLocation = {0, rowsPerRank, 2*rowsPerRank*colsPerRank, 2*rowsPerRank*colsPerRank+rowsPerRank};
+	int const snapShotLocation[4] = {0, rowsPerRank, 2*rowsPerRank*colsPerRank, 2*rowsPerRank*colsPerRank+rowsPerRank};
+	int column_neighbour_rank;
+	int row_neighbour_rank;
+
 	switch (my_rank)
 	{
 	case 0:
@@ -117,7 +120,7 @@ int main(int argc, char* argv[])
 		initialise_temperatures(all_temperatures);
 	}
 
-	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(&grid_communicator);
 
 	///////////////////////////////////////////
 	//     ^                                 //
@@ -142,7 +145,7 @@ int main(int argc, char* argv[])
 			if(i != my_rank)
 			{
 				// No, so send the corresponding chunk to that MPI process.
-				MPI_Ssend(&all_temperatures[i * ROWS_PER_MPI_PROCESS][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
+				MPI_Ssend(&all_temperatures[i * ROWS_PER_MPI_PROCESS][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, i, 0, &grid_communicator);
 			}
 			else
 			{
@@ -161,7 +164,7 @@ int main(int argc, char* argv[])
 	else
 	{
 		// Receive my chunk.
-		MPI_Recv(&temperatures_last[1][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&temperatures_last[1][0], ROWS_PER_MPI_PROCESS * COLUMNS_PER_MPI_PROCESS, MPI_DOUBLE, MASTER_PROCESS_RANK, MPI_ANY_TAG, &grid_communicator, MPI_STATUS_IGNORE);
 	}
 
 	// Copy the temperatures into the current iteration temperature as well
@@ -180,7 +183,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Wait for everybody to receive their part before we can start processing
-	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(&grid_communicator);
 
 	/////////////////////////////
 	// TASK 2: DATA PROCESSING //
@@ -205,13 +208,13 @@ int main(int argc, char* argv[])
 	MPI_Request requestRecvColumn;
 	MPI_Request requestGatherSnapshot;
 
-	MPI_Send_init(&temperatures[1][0],                          1,  colEdgeType , column_neighbour_rank,   0, MPI_COMM_WORLD, &requestSendColumn);
-	MPI_Send_init(&temperatures[rowsPerRank][0],       colsPerRank, MPI_DOUBLE, row_neighbour_rank,      0, MPI_COMM_WORLD, &requestSendRow);
+	MPI_Send_init(&temperatures[1][0],                          1,  colEdgeType , column_neighbour_rank,   0, &grid_communicator, &requestSendColumn);
+	MPI_Send_init(&temperatures[rowsPerRank][0],       colsPerRank, MPI_DOUBLE, row_neighbour_rank,      0, &grid_communicator, &requestSendRow);
 
-	MPI_Send_init(&temperatures[1][0],   rowsPerRank*colsPerRank, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD, &requestGatherSnapshot);
+	MPI_Send_init(&temperatures[1][0],   rowsPerRank*colsPerRank, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, &grid_communicator, &requestGatherSnapshot);
 
-	MPI_Recv_init(&temperatures_last[rowsPerRank+1][0],           1, colEdgeType , column_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvColumn);
-	MPI_Recv_init(&temperatures_last[0][0],             colsPerRank, MPI_DOUBLE, row_neighbour_rank,    MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvRow);
+	MPI_Recv_init(&temperatures_last[rowsPerRank+1][0],           1, colEdgeType , column_neighbour_rank, MPI_ANY_TAG, &grid_communicator, &requestRecvColumn);
+	MPI_Recv_init(&temperatures_last[0][0],             colsPerRank, MPI_DOUBLE, row_neighbour_rank,    MPI_ANY_TAG, &grid_communicator, &requestRecvRow);
 
 	while(total_time_so_far < MAX_TIME)
 	{
@@ -345,7 +348,7 @@ int main(int argc, char* argv[])
 		//////////////////////////////////////////////////////////
 		// -- SUBTASK 4: FIND MAX TEMPERATURE CHANGE OVERALL -- //
 		//////////////////////////////////////////////////////////
-		MPI_Allreduce(&my_temperature_change, &global_temperature_change, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		MPI_Allreduce(&my_temperature_change, &global_temperature_change, 1, MPI_DOUBLE, MPI_MAX, &grid_communicator);
 
 		//////////////////////////////////////////////////
 		// -- SUBTASK 5: UPDATE LAST ITERATION ARRAY -- //
@@ -381,7 +384,7 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						MPI_Recv(&snapshot[j * rowsPerRank][0], 1, blockType, j, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						MPI_Recv(&snapshot[j * rowsPerRank][0], 1, blockType, j, MPI_ANY_TAG, &grid_communicator, MPI_STATUS_IGNORE);
 					}
 				}
 
@@ -401,7 +404,7 @@ int main(int argc, char* argv[])
 		}
 
 		// Send total timer to everybody so they too can exit the loop if more than the allowed runtime has elapsed already
-		MPI_Bcast(&total_time_so_far, 1, MPI_DOUBLE, MASTER_PROCESS_RANK, MPI_COMM_WORLD);
+		MPI_Bcast(&total_time_so_far, 1, MPI_DOUBLE, MASTER_PROCESS_RANK, &grid_communicator);
 
 		// Update the iteration number
 		iteration_count++;
