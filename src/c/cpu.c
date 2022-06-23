@@ -48,7 +48,10 @@ int main(int argc, char* argv[])
 
 	double column_neighbour_rank, row_neighbour_rank;
 
+	int const rowsPerRank = ROWS/2;
+	int const colsPerRank = COLUMNS/2;
 	// Rank of my up neighbour if any
+	int snapShotLocation = {0, rowsPerRank, 2*rowsPerRank*colsPerRank, 2*rowsPerRank*colsPerRank+rowsPerRank};
 	switch (my_rank)
 	{
 	case 0:
@@ -73,8 +76,6 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////
 	// -- PREPARATION 2: INITIALISE TEMPERATURES ON MASTER PROCESS -- //
 	////////////////////////////////////////////////////////////////////
-	int const rowsPerRank = ROWS/2;
-	int const colsPerRank = COLUMNS/2;
 	/// Array that will contain my part chunk. It will include the 2 ghost rows (1 up, 1 down)
 	double temperatures[rowsPerRank+2][colsPerRank+2];
 	/// Temperatures from the previous iteration, same dimensions as the array above.
@@ -164,8 +165,10 @@ int main(int argc, char* argv[])
 	/// The last snapshot made
 	double snapshot[ROWS][COLUMNS];
 
-	MPI_Datatype blockType;
-    MPI_Type_vector(rowsPerRank, 1, ROWS, MPI_DOUBLE, &blockType);
+	MPI_Datatype colEdgeType, blockType;
+    MPI_Type_vector(rowsPerRank, 1, ROWS, MPI_DOUBLE, &colEdgeType);
+    MPI_Type_commit(&colEdgeType);
+	MPI_Type_vector(rowsPerRank, rowsPerRank, ROWS, MPI_DOUBLE, &blockType);
     MPI_Type_commit(&blockType);
 
 	MPI_Request requestSendRow;
@@ -174,13 +177,13 @@ int main(int argc, char* argv[])
 	MPI_Request requestRecvColumn;
 	MPI_Request requestGatherSnapshot;
 
-	MPI_Send_init(&temperatures[1][0],                          1,                         blockType , column_neighbour_rank,   0, MPI_COMM_WORLD, &requestUp);
-	MPI_Send_init(&temperatures[rowsPerRank][0],       colsPerRank, MPI_DOUBLE, row_neighbour_rank, 0, MPI_COMM_WORLD, &requestDown);
+	MPI_Send_init(&temperatures[1][0],                          1,  colEdgeType , column_neighbour_rank,   0, MPI_COMM_WORLD, &requestSendColumn);
+	MPI_Send_init(&temperatures[rowsPerRank][0],       colsPerRank, MPI_DOUBLE, row_neighbour_rank,      0, MPI_COMM_WORLD, &requestSendRow);
 
 	MPI_Send_init(&temperatures[1][0],   rowsPerRank*colsPerRank, MPI_DOUBLE, MASTER_PROCESS_RANK, 0, MPI_COMM_WORLD, &requestGatherSnapshot);
 
-	MPI_Recv_init(&temperatures_last[rowsPerRank+1][0], 1,                         blockType , column_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvDown);
-	MPI_Recv_init(&temperatures_last[0][0],                      colsPerRank, MPI_DOUBLE, row_neighbour_rank,   MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvUp);
+	MPI_Recv_init(&temperatures_last[rowsPerRank+1][0],           1, colEdgeType , column_neighbour_rank, MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvColumn);
+	MPI_Recv_init(&temperatures_last[0][0],             colsPerRank, MPI_DOUBLE, row_neighbour_rank,    MPI_ANY_TAG, MPI_COMM_WORLD, &requestRecvRow);
 
 	while(total_time_so_far < MAX_TIME)
 	{
@@ -191,10 +194,10 @@ int main(int argc, char* argv[])
 		// ////////////////////////////////////////
 
 		// Send data to up neighbour for its ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
-		MPI_Start(&requestUp);
+		MPI_Start(&requestSendRow);
 
 		// Send data to down neighbour for its ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Ssend will do nothing.
-		MPI_Start(&requestDown);
+		MPI_Start(&requestSendColumn);
 
 		/////////////////////////////////////////////
 		// -- SUBTASK 2: PROPAGATE TEMPERATURES -- //
@@ -242,18 +245,18 @@ int main(int argc, char* argv[])
 		// Get the halo data and compute the edge values
 
 		// Receive data from down neighbour to fill our ghost cells. If my down_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Start(&requestRecvDown);
+		MPI_Start(&requestRecvColumn);
 
 		// Receive data from up neighbour to fill our ghost cells. If my up_neighbour_rank is MPI_PROC_NULL, this MPI_Recv will do nothing.
-		MPI_Start(&requestRecvUp);
+		MPI_Start(&requestRecvRow);
 
 		// Waits for the MPI sends
-		MPI_Wait(&requestUp,   MPI_STATUS_IGNORE);
-		MPI_Wait(&requestDown, MPI_STATUS_IGNORE);
+		MPI_Wait(&requestSendRow,    MPI_STATUS_IGNORE);
+		MPI_Wait(&requestSendColumn, MPI_STATUS_IGNORE);
 
 		// Waits for the MPI receives
-		MPI_Wait(&requestRecvUp,   MPI_STATUS_IGNORE);
-		MPI_Wait(&requestRecvDown, MPI_STATUS_IGNORE);
+		MPI_Wait(&requestRecvColumn,   MPI_STATUS_IGNORE);
+		MPI_Wait(&requestRecvRow,      MPI_STATUS_IGNORE);
 
 		second_my_temperature_change = 0.0;
 		#pragma omp parallel default(none) shared(temperatures, temperatures_last) reduction(max:second_my_temperature_change)
@@ -350,7 +353,7 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						MPI_Recv(&snapshot[j * rowsPerRank][0], rowsPerRank * colsPerRank, MPI_DOUBLE, j, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						MPI_Recv(&snapshot[j * rowsPerRank][0], 1, blockType, j, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 					}
 				}
 
