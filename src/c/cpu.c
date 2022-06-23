@@ -59,9 +59,9 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////
 
 	/// Array that will contain my part chunk. It will include the 2 ghost rows (1 up, 1 down)
-	double temperatures[ROWS_PER_MPI_PROCESS+2][COLUMNS_PER_MPI_PROCESS];
+	double temperatures[(2*ROWS_PER_MPI_PROCESS)+2][(COLUMNS_PER_MPI_PROCESS/2)];
 	/// Temperatures from the previous iteration, same dimensions as the array above.
-	double temperatures_last[ROWS_PER_MPI_PROCESS+2][COLUMNS_PER_MPI_PROCESS];
+	double temperatures_last[(2*ROWS_PER_MPI_PROCESS)+2][(COLUMNS_PER_MPI_PROCESS/2)];
 	/// On master process only: contains all temperatures read from input file.
 	double all_temperatures[ROWS][COLUMNS];
 
