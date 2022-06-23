@@ -1,0 +1,5 @@
+*.vscode/*
+output.log
+error.txt
+bin/*
+*.mod
