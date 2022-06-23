@@ -41,12 +41,38 @@ int main(int argc, char* argv[])
 	int comm_size;
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
+	// Create the virtual topology
+	int dims[2]={0,0};
+	MPI_Dims_create(comm_size, 2, dims);
+
+
+	int periodic[2]={0,0}; // Not periodic
+	MPI_Comm grid_communicator;
+	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periodic, 0, &grid_communicator);
+	//MPI_Cart_coords(grid_comm, id, 2, coord);
+
+	int nx = ROWS/dims[0];
+	int ny = COLUMNS/dims[1];
+
+	int start_coordinates[2]={0,0};
+	int original_dims[2] ={ROWS, COLUMNS};
+	int new_dims[2] = {ROWS_PER_MPI_PROCESS, COLUMNS_PER_MPI_PROCESS};
+	MPI_Datatype subarray_type;
+	MPI_Type_create_subarray(2, original_dims, new_dims, start_coordinates, MPI_ORDER_C, MPI_DOUBLE, &subarray_type);
+	MPI_Type_commit(&subarray_type);
+
 	/// Rank of the first MPI process
 	const int FIRST_PROCESS_RANK = 0;
 	/// Rank of the last MPI process
 	const int LAST_PROCESS_RANK = comm_size - 1;
 
-	double column_neighbour_rank, row_neighbour_rank;
+	// Rank of my up neighbour if any
+	//int up_neighbour_rank = (my_rank == FIRST_PROCESS_RANK) ? MPI_PROC_NULL : my_rank - 1;
+
+	// Rank of my down neighbour if any
+	//int down_neighbour_rank = (my_rank == LAST_PROCESS_RANK) ? MPI_PROC_NULL : my_rank + 1;
+	int up_neighbour_rank, down_neighbour_rank;
+  	MPI_Cart_shift(grid_communicator, 1, 1, &down_neighbour_rank, &up_neighbour_rank);
 
 	int const rowsPerRank = ROWS/2;
 	int const colsPerRank = COLUMNS/2;
@@ -82,6 +108,8 @@ int main(int argc, char* argv[])
 	double temperatures_last[rowsPerRank+2][colsPerRank+2];
 	/// On master process only: contains all temperatures read from input file.
 	double all_temperatures[ROWS][COLUMNS];
+
+
 
 	// The master MPI process will read a chunk from the file, send it to the corresponding MPI process and repeat until all chunks are read.
 	if(my_rank == MASTER_PROCESS_RANK)
